@@ -31,6 +31,12 @@
 /* Reports to wait between an extension unplug and the next plug-in (~240 ms at 125 Hz). */
 #define NWII_HOTPLUG_DELAY_REPORTS  30u
 
+/* Extension data reports sent at rest (sticks centred, nothing pressed) after the host picks a
+ * report mode or an extension appears. Some hosts (Nintendont) take the first extension report as
+ * the stick centre for the whole session, so it must not catch the controller mid-motion or
+ * mid-reconnect. */
+#define NWII_EXT_SETTLE_REPORTS     3u
+
 /* EEPROM: 0x1700 addressable bytes. Only the calibration area is backed by RAM. */
 #define NWII_EEPROM_SIZE            0x1700u
 #define NWII_EEPROM_RAM_LEN         0x30u
@@ -93,6 +99,7 @@ typedef struct
     bool    ir_enabled;
     bool    speaker_enabled;
     bool    interleave_second; // Next 0x3E/0x3F report is the 0x3F half
+    uint8_t ext_settle;        // Extension reports still to send at rest
 
     nwii_extension_t ext_attached; // Plugged into the port (behind the MotionPlus, if any)
     uint8_t          hotplug_timer;
@@ -209,6 +216,7 @@ static inline bool _nwii_ext_encrypted(void)
 static void _nwii_ext_attach(nwii_extension_t extension)
 {
     _nwii.ext_attached = extension;
+    _nwii.ext_settle = NWII_EXT_SETTLE_REPORTS;
     nwii_extension_reset_registers(_nwii.ext_reg, extension);
     memset(&_nwii.crypto, 0, sizeof(_nwii.crypto));
 }
@@ -416,6 +424,7 @@ static void _nwii_process_outputreport(const uint8_t *data, uint8_t len)
         {
             _nwii.mode = data[2];
             _nwii.interleave_second = false;
+            _nwii.ext_settle = NWII_EXT_SETTLE_REPORTS;
         }
         if (ack) _nwii_queue_ack(id, NWII_ERROR_OK);
         break;
@@ -474,6 +483,8 @@ static void _nwii_process_outputreport(const uint8_t *data, uint8_t len)
         break;
     }
 }
+
+static void _nwii_default_input(nwii_input_s *in);
 
 /* --- Input report building --- */
 
@@ -609,7 +620,17 @@ static void _nwii_put_extension(uint8_t *out, uint8_t len, const nwii_input_s *i
 
     if (_nwii.ext_attached != NWII_EXTENSION_NONE)
     {
-        nwii_extension_encode(_nwii.ext_attached, in, _nwii.ext_reg);
+        if (_nwii.ext_settle)
+        {
+            nwii_input_s rest;
+            _nwii_default_input(&rest);
+            nwii_extension_encode(_nwii.ext_attached, &rest, _nwii.ext_reg);
+            _nwii.ext_settle--;
+        }
+        else
+        {
+            nwii_extension_encode(_nwii.ext_attached, in, _nwii.ext_reg);
+        }
     }
 
     memcpy(out, _nwii.ext_reg, len);
