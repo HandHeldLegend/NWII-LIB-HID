@@ -31,11 +31,13 @@ extern "C" {
 #define NWII_IR_POINTER_RANGE_Y     282
 
 /**
- * @brief Vertical camera offset of the sensor bar for a centred cursor.
+ * @brief How far the Wii expects the sensor bar off the aim, vertically.
  *
  * The Wii does not centre the cursor on the bar itself: a remote aimed at the middle of the screen
- * sees the bar about 10 cm off its aim (about 56 px at 2.5 m). Without this, a centred cursor
- * lands below the middle of the screen.
+ * sees the bar about 10 cm off its aim (about 56 px at 2.5 m), above the aim with the bar set below
+ * the TV and below it with the bar set above. The remote can't tell which is set, so the vertical
+ * travel reaches this much further both ways: every edge is reachable with either setting, and one
+ * edge lets the cursor run a little past it.
  */
 #define NWII_IR_POINTER_OFFSET_Y    56
 
