@@ -169,8 +169,10 @@ Recentring also makes the current pose "level": pass the remote accelerometer th
 `nwii_aim_level_accel()` so a player aiming from below or above still reports a remote held
 level at the screen.
 
-The virtual sensor bar sits `NWII_IR_POINTER_OFFSET_Y` above the aim point, as the Wii expects,
-so a recentred cursor lands in the middle of the screen.
+The Wii expects the sensor bar `NWII_IR_POINTER_OFFSET_Y` off the aim point, above or below
+depending on its sensor bar setting, which the remote can't read. The vertical travel reaches that
+much further both ways, so every edge is reachable with either setting; a recentred cursor lands
+slightly off the middle of the screen.
 
 ### MotionPlus
 
