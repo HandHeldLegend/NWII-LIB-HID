@@ -63,7 +63,8 @@ void nwii_api_connection_reset(void);
  *
  * @param data Output buffer of NWII_INPUT_REPORT_MAX bytes.
  * @param[out] len Bytes written including the report id.
- * @return True when a report was produced.
+ * @return True when a report was produced. False when nothing changed and the Wii has not asked
+ *         for continuous reporting (a real remote stays quiet then too): send nothing this period.
  */
 bool nwii_api_generate_inputreport(uint8_t data[NWII_INPUT_REPORT_MAX], uint8_t *len);
 

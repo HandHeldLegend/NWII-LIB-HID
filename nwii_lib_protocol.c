@@ -96,6 +96,9 @@ typedef struct
 typedef struct
 {
     uint8_t mode;
+    bool    continuous;        // The Wii asked for a report every period; otherwise only on change
+    uint8_t last_data[NWII_INPUT_REPORT_MAX];
+    uint8_t last_len;          // 0: nothing sent in this mode yet
     bool    ir_enabled;
     bool    speaker_enabled;
     bool    interleave_second; // Next 0x3E/0x3F report is the 0x3F half
@@ -423,6 +426,8 @@ static void _nwii_process_outputreport(const uint8_t *data, uint8_t len)
         if (len >= 3u && _nwii_mode_valid(data[2]))
         {
             _nwii.mode = data[2];
+            _nwii.continuous = (flags & NWII_OUT_FLAG_ENABLE) != 0u;
+            _nwii.last_len = 0;
             _nwii.interleave_second = false;
             _nwii.ext_settle = NWII_EXT_SETTLE_REPORTS;
         }
@@ -921,5 +926,12 @@ bool nwii_protocol_generate_inputreport(uint8_t *data, uint8_t *len)
     }
 
     *len = _nwii_build_data(data, &in);
+
+    // Like a real remote: unless the Wii asked for continuous reports, send only what changed
+    if (!_nwii.continuous && *len == _nwii.last_len && !memcmp(data, _nwii.last_data, *len))
+        return false;
+
+    memcpy(_nwii.last_data, data, *len);
+    _nwii.last_len = *len;
     return true;
 }
